@@ -29,6 +29,7 @@ var jobs []Job
 var jobs_failed int
 var jobs_succeeded int
 var jobs_inactive int
+var jobs_running int
 var total_jobs_ran int
 
 // Job struct
@@ -38,6 +39,7 @@ type Job struct {
 	Active       bool
 	Latest_Build string
 	Successful   bool
+	Running      bool
 }
 
 func init() {
@@ -110,6 +112,10 @@ func load_jobs(job_file_path string) {
 		} else {
 			jobs_inactive++
 		}
+
+		if jobs[i].Running {
+			jobs_running++
+		}
 	}
 }
 
@@ -130,10 +136,12 @@ func get_job_status(job *Job) {
 
 	// Get the status and populate the job.Status
 	status := gjson.Get(finished_content, "result")
-	if status.String() != "SUCCESS" {
+	if status.String() == "SUCCESS" {
+		job.Successful = true
+	} else if status.String() == "FAILURE" {
 		job.Successful = false
 	} else {
-		job.Successful = true
+		job.Running = true
 	}
 }
 
@@ -149,9 +157,8 @@ func read_gcp_file(gcp_bucket string, file string) string {
 
 	rc, err := client.Bucket(gcp_bucket).Object(file).NewReader(ctx)
 	if err != nil {
-		slog.Error("Unable to open new reader for GCP Bucket. File " + file + " doesn't seem to exist.")
-		slog.Error("It is possible that not all jobs are finished running. Please wait and try again.")
-		os.Exit(1)
+		slog.Info("Unable to open new reader for GCP Bucket. File " + file + " doesn't seem to exist.")
+		return ""
 	}
 	slurp, err := io.ReadAll(rc)
 	rc.Close()
@@ -170,10 +177,13 @@ func build_message(job_group_name string, mentioned_group_id string) string {
 	// Statistics block
 	total_jobs_ran = jobs_succeeded + jobs_failed
 	passing_percentage := math.Ceil((float64(jobs_succeeded) / float64(total_jobs_ran)) * 100)
-	statistics_block := fmt.Sprintf("*Total:* %d\n*Successful:* %d\n*Failed:* %d\n*Inactive:* %d\n*Passing Percentage:* approximately %d%%\n\n", total_jobs_ran, jobs_succeeded, jobs_failed, jobs_inactive, int(passing_percentage))
+	statistics_block := fmt.Sprintf("*Total:* %d\n*Successful:* %d\n*Failed:* %d\n*Inactive:* %d\n*Passing Percentage:* approximately %d%%\n", total_jobs_ran, jobs_succeeded, jobs_failed, jobs_inactive, int(passing_percentage))
+	if jobs_running > 0 {
+		statistics_block = statistics_block + fmt.Sprintf("*Jobs Still Running:* %d\n", jobs_running)
+	}
 
 	// Failed jobs list
-	failed_jobs_title := "*FAILED JOBS*\n"
+	failed_jobs_title := "\n\n*FAILED JOBS*\n"
 	var failed_jobs_list bytes.Buffer
 	for i := range jobs {
 		if !jobs[i].Successful && jobs[i].Active {
@@ -184,7 +194,7 @@ func build_message(job_group_name string, mentioned_group_id string) string {
 	failed_jobs_block := failed_jobs_title + failed_jobs_list.String() + "\n\n"
 
 	// Inactive jobs list
-	inactive_jobs_title := "*INACTIVE_JOBS*\n"
+	inactive_jobs_title := "*INACTIVE JOBS*\n"
 	var inactive_jobs_list bytes.Buffer
 	for i := range jobs {
 		if !jobs[i].Active {
@@ -193,6 +203,21 @@ func build_message(job_group_name string, mentioned_group_id string) string {
 		}
 	}
 	inactive_jobs_block := inactive_jobs_title + inactive_jobs_list.String() + "\n"
+
+	// Running jobs list
+	if jobs_running > 0 {
+		jobs_running_title := "\n*JOBS RUNNING*\n"
+		var jobs_running_list bytes.Buffer
+		for i := range jobs {
+			if jobs[i].Running {
+				list_item := "- <https://prow.ci.openshift.org/view/gs/origin-ci-test/logs/" + jobs[i].Job_Name + "/" + jobs[i].Latest_Build + "|" + jobs[i].Job_Name + ">\n"
+				jobs_running_list.WriteString(list_item)
+			}
+		}
+		jobs_running_block := jobs_running_title + jobs_running_list.String() + "\n"
+
+		return greeting + statistics_block + failed_jobs_block + inactive_jobs_block + jobs_running_block
+	}
 
 	return greeting + statistics_block + failed_jobs_block + inactive_jobs_block
 }
