@@ -9,11 +9,9 @@ container-terminal:
 container-execute:
 	$(IMAGE_BUILD_CMD) run -it --entrypoint interop-ocp-watcher-bot interop-ocp-watcher-bot --job_file_path=$(job_file_path) --mentioned_group_id=$(mentioned_group_id) --webhook_url=$(webhook_url) --job_group_name=$(job_group_name)
 
-container-build-terminal:
-	container-build container-terminal
+container-build-terminal: container-build container-terminal
 
-container-build-execute:
-	container-build container-execute
+container-build-execute: container-build container-execute
 
 pre-commit:
 	pre-commit run --all-files
