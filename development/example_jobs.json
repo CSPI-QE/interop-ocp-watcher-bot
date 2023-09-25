@@ -29,4 +29,3 @@
     {"job_name": "periodic-ci-quay-quay-tests-master-ocp414-quay38-quay-e2e-tests-quay38-ocp414-lp-interop", "active": false},
     {"job_name": "periodic-ci-rhoar-qe-spring-boot-openshift-interop-tests-main-springboot-ocp4.14-lp-interop-springboot-interop-aws", "active": true}
   ]
-  
