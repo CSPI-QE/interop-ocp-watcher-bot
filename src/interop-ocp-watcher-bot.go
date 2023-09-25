@@ -70,6 +70,7 @@ func load_jobs(job_file_path string) {
 	if err != nil {
 		slog.Error("Unable to open " + job_file_path)
 		fmt.Println(err)
+		os.Exit(1)
 	}
 	slog.Info("Successfully opened " + job_file_path)
 
@@ -84,6 +85,7 @@ func load_jobs(job_file_path string) {
 		// print error
 		slog.Error("Error encountered while unmarshalling JSON")
 		fmt.Println(err)
+		os.Exit(1)
 	}
 	jsonFile.Close()
 
@@ -142,16 +144,20 @@ func read_gcp_file(gcp_bucket string, file string) string {
 	client, err := storage.NewClient(ctx, option.WithoutAuthentication())
 	if err != nil {
 		slog.Error("Unable to create new storage client.")
+		os.Exit(1)
 	}
 
 	rc, err := client.Bucket(gcp_bucket).Object(file).NewReader(ctx)
 	if err != nil {
-		slog.Error("Unable to open new reader for GCP Bucket.")
+		slog.Error("Unable to open new reader for GCP Bucket. File " + file + " doesn't seem to exist.")
+		slog.Error("It is possible that not all jobs are finished running. Please wait and try again.")
+		os.Exit(1)
 	}
 	slurp, err := io.ReadAll(rc)
 	rc.Close()
 	if err != nil {
 		slog.Error("Unable to read file in GCP bucket.")
+		os.Exit(1)
 	}
 	return string(slurp)
 }
@@ -200,18 +206,21 @@ func send_message(webhook_url string, message string) {
 	req, err := http.NewRequest("POST", webhook_url, data)
 	if err != nil {
 		log.Fatal(err)
+		os.Exit(1)
 	}
 
 	req.Header.Set("Content-type", "application/json")
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err)
+		os.Exit(1)
 	}
 
 	defer resp.Body.Close()
 	bodyText, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatal(err)
+		os.Exit(1)
 	}
 	fmt.Printf("Message response: %s\n", bodyText)
 }
