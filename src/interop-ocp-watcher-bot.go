@@ -123,7 +123,7 @@ func load_jobs(job_file_path string) {
 func get_latest_build_id(job *Job) {
 
 	latest_build_id_file := "logs/" + string(job.Job_Name) + "/latest-build.txt"
-	build_id := read_gcp_file("origin-ci-test", latest_build_id_file)
+	build_id := read_gcp_file("test-platform-results", latest_build_id_file)
 	job.Latest_Build = string(build_id)
 }
 
@@ -132,7 +132,7 @@ func get_latest_build_id(job *Job) {
 func get_job_status(job *Job) {
 	// Get contents of finished.json for build
 	finished_file_path := "logs/" + string(job.Job_Name) + "/" + string(job.Latest_Build) + "/finished.json"
-	finished_content := read_gcp_file("origin-ci-test", finished_file_path)
+	finished_content := read_gcp_file("test-platform-results", finished_file_path)
 
 	// Get the status and populate the job.Status
 	status := gjson.Get(finished_content, "result")
@@ -187,7 +187,7 @@ func build_message(job_group_name string, mentioned_group_id string) string {
 	var failed_jobs_list bytes.Buffer
 	for i := range jobs {
 		if !jobs[i].Successful && jobs[i].Active {
-			list_item := "- <https://prow.ci.openshift.org/view/gs/origin-ci-test/logs/" + jobs[i].Job_Name + "/" + jobs[i].Latest_Build + "|" + jobs[i].Job_Name + ">\n"
+			list_item := "- <https://prow.ci.openshift.org/view/gs/test-platform-results/logs/" + jobs[i].Job_Name + "/" + jobs[i].Latest_Build + "|" + jobs[i].Job_Name + ">\n"
 			failed_jobs_list.WriteString(list_item)
 		}
 	}
@@ -210,7 +210,7 @@ func build_message(job_group_name string, mentioned_group_id string) string {
 		var jobs_running_list bytes.Buffer
 		for i := range jobs {
 			if jobs[i].Running {
-				list_item := "- <https://prow.ci.openshift.org/view/gs/origin-ci-test/logs/" + jobs[i].Job_Name + "/" + jobs[i].Latest_Build + "|" + jobs[i].Job_Name + ">\n"
+				list_item := "- <https://prow.ci.openshift.org/view/gs/test-platform-results/logs/" + jobs[i].Job_Name + "/" + jobs[i].Latest_Build + "|" + jobs[i].Job_Name + ">\n"
 				jobs_running_list.WriteString(list_item)
 			}
 		}
