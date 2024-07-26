@@ -92,10 +92,15 @@ func load_jobs(job_file_path string) {
 	jsonFile.Close()
 
 	slog.Info("Finding latest build IDs of jobs")
+	filteredJobs := []Job{}
 	for i := range jobs {
 		// Populate the job struct with the latest build ID
 		get_latest_build_id(&jobs[i])
+		if jobs[i].Latest_Build != "" {
+			filteredJobs = append(filteredJobs, jobs[i])
+		}
 	}
+	jobs = filteredJobs
 
 	slog.Info("Retrieving build statuses")
 	for i := range jobs {
