@@ -31,6 +31,7 @@ var jobs_succeeded int
 var jobs_inactive int
 var jobs_running int
 var total_jobs_ran int
+var passing_percentage float64
 
 // Job struct
 type Job struct {
@@ -181,7 +182,12 @@ func build_message(job_group_name string, mentioned_group_id string) string {
 
 	// Statistics block
 	total_jobs_ran = jobs_succeeded + jobs_failed
-	passing_percentage := math.Ceil((float64(jobs_succeeded) / float64(total_jobs_ran)) * 100)
+	if total_jobs_ran > 0 {
+    passing_percentage = math.Ceil((float64(jobs_succeeded) / float64(total_jobs_ran)) * 100)
+    } else {
+        passing_percentage = 0
+    }
+
 	statistics_block := fmt.Sprintf("*Total:* %d\n*Successful:* %d\n*Failed:* %d\n*Inactive:* %d\n*Passing Percentage:* approximately %d%%\n", total_jobs_ran, jobs_succeeded, jobs_failed, jobs_inactive, int(passing_percentage))
 	if jobs_running > 0 {
 		statistics_block = statistics_block + fmt.Sprintf("*Jobs Still Running:* %d\n", jobs_running)
